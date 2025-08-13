@@ -1,100 +1,35 @@
-#include <iostream>
-#include <vector>
-#include <string>
 #include <thread>
 #include <chrono>
+#include "common.h"
 
-using namespace std;
 
-enum EstadoSemaforo { ROJO, VERDE, AMARILLO };
+int main(int argc, char** argv) {
+	//conf inicial
+    int num_vehiculos = 20;
+    int num_semaforos = 4;
+    int iteraciones   = 10;
 
-struct Semaforo {
-    int id;
-    EstadoSemaforo estado;
-    int tiempo; // tiempo restante en el estado actual
-};
+    if (argc >= 2) num_vehiculos = std::stoi(argv[1]);
+    if (argc >= 3) num_semaforos = std::stoi(argv[2]);
+    if (argc >= 4) iteraciones   = std::stoi(argv[3]);
 
-struct Vehiculo {
-    int id;
-    float posicion;
-    float velocidad;
-};
+    // inicializacion determinista
+    Interseccion inter = crear_interseccion(num_vehiculos, num_semaforos, 3, 1, 2);
 
-struct Interseccion {
-    vector<Semaforo> semaforos;
-    vector<Vehiculo> vehiculos;
-};
-
-// Funcion para mostrar el estado del semaforo en texto
-string estadoToString(EstadoSemaforo estado) {
-    switch (estado) {
-        case ROJO: return "ROJO";
-        case VERDE: return "VERDE";
-        case AMARILLO: return "AMARILLO";
-        default: return "";
-    }
-}
-
-// Funcion que actualiza el estado de un semaforo
-void actualizarSemaforo(Semaforo &s) {
-    s.tiempo--;
-    if (s.tiempo <= 0) {
-        if (s.estado == VERDE) {
-            s.estado = AMARILLO;
-            s.tiempo = 2; // duracion amarillo
-        } else if (s.estado == AMARILLO) {
-            s.estado = ROJO;
-            s.tiempo = 5; // duracion rojo
-        } else if (s.estado == ROJO) {
-            s.estado = VERDE;
-            s.tiempo = 5; // duracion verde
+    for (int t = 1; t <= iteraciones; ++t) {
+        // actualizar semaforos
+        for (auto& s : inter.semaforos) {
+            actualizar_semaforo_tick(s);
         }
-    }
-}
-
-// Funcion que mueve los vehiculos segun el semaforo
-void moverVehiculos(vector<Vehiculo> &vehiculos, Semaforo &s) {
-    for (auto &v : vehiculos) {
-        if (s.estado == VERDE) {
-            v.posicion += v.velocidad;
+        // mover vehiculos segun su semaforo
+        for (auto& v : inter.vehiculos) {
+            mover_vehiculo_tick(v, inter.semaforos);
         }
-    }
-}
+        // print estado
+        imprimir_estado(t, inter.vehiculos, inter.semaforos);
 
-int main() {
-    Interseccion inter;
-
-    // Inicializar semaforos
-    Semaforo s1 = {1, VERDE, 5};
-    Semaforo s2 = {2, ROJO, 5};
-    inter.semaforos.push_back(s1);
-    inter.semaforos.push_back(s2);
-
-    // Inicializar vehiculos
-    for (int i = 0; i < 10; i++) {
-        Vehiculo v = {i, 0.0f, 1.0f};
-        inter.vehiculos.push_back(v);
-    }
-
-    // Simulacion
-    for (int t = 0; t < 20; t++) {
-        cout << "Iteracion: " << t << endl;
-
-        // Actualizar semaforos
-        for (auto &s : inter.semaforos) {
-            actualizarSemaforo(s);
-            cout << "Semaforo " << s.id << " -> " << estadoToString(s.estado) << " (" << s.tiempo << ")" << endl;
-        }
-
-        // Mover vehiculos usando el primer semaforo (simplificacion)
-        moverVehiculos(inter.vehiculos, inter.semaforos[0]);
-
-        // Mostrar posiciones
-        for (auto &v : inter.vehiculos) {
-            cout << "Vehiculo " << v.id << " posicion: " << v.posicion << endl;
-        }
-
-        this_thread::sleep_for(chrono::milliseconds(500));
+        // un sleep para que se vea mejor 
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
 
     return 0;
