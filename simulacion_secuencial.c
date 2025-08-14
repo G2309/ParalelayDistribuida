@@ -1,7 +1,5 @@
 #include "common.h"
 
-#include "common.h"
-
 int main(int argc, char** argv) {
     // Configuración inicial 
     int num_vehiculos = 20;   // cantidad de vehiculos
